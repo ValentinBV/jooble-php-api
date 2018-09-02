@@ -58,7 +58,7 @@ class Request
             $this->totalCount = $resultArray['totalCount'];
         }
         
-        return $resultArray;
+        return $resultArray['jobs'] ? : [];
     }
     
     /**

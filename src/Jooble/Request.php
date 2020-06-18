@@ -83,4 +83,21 @@ class Request
     {
         return $this->accessToken;
     }
+
+    /**
+     * Decode query result body.
+     * @param string $body
+     * @return array
+     */
+    public function decodeBody(string $body): array
+    {
+        $decodeBody = json_decode($body, true);
+
+        if ($decodeBody === null || !is_array($decodeBody)) {
+            $decodeBody = [];
+        }
+
+        return $decodeBody;
+    }
+
 }

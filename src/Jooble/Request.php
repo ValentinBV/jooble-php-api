@@ -1,14 +1,16 @@
 <?php
 
-namespace Sibdev\Jooble;
+namespace valentinbv\Jooble;
 
-use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\TransferException;
+use valentinbv\Jooble\Exception\JoobleRequestException;
 
-class Request 
+class Request
 {
     /**
      * Jooble api url
-     * @var string 
+     * @var string
      */
     private $apiUrl = 'https://ru.jooble.org/api/';
     /**
@@ -18,23 +20,23 @@ class Request
     private $accessToken = '';
     /**
      * GuzzleHttp Client object
-     * @var Client 
+     * @var ClientInterface
      */
     private $httpClient;
-    /**
-     * Results Total Count
-     * @var integer 
-     */
-    private $totalCount = 0;
-    
+
     /**
      * Jooble php api constructor
+     * @param ClientInterface $httpClient
+     * @param string $apiUrl
      */
-    public function __construct()
+    public function __construct(ClientInterface $httpClient, string $apiUrl = '')
     {
-        $this->httpClient = new Client();
+        if ($apiUrl) {
+            $this->$apiUrl = $apiUrl;
+        }
+        $this->httpClient = $httpClient;
     }
-    
+
     /**
      * Allows to search job by params
      * @param array $params
@@ -44,23 +46,26 @@ class Request
      *      - integer salary: salary range
      *      - integer page: page number
      *      - integer searchMode: Job listings display mode
-     *          1 - Recommended job listngs + *JDP (Jooble Job Description mode for a better user experience)
+     *          1 - Recommended job listings + *JDP (Jooble Job Description mode for a better user experience)
      *          2 - Recommended job listings
      *          3 - All job listings (not recommended)
      * @return array
-     * @throws \Exception
+     * @throws JoobleRequestException
      */
-    public function search(array $params = [])
-    {   
-        $resultJson = $this->httpClient->request('POST', $this->apiUrl . $this->accessToken, ['json' => $params]);
-        $resultArray = \GuzzleHttp\json_decode($resultJson->getBody(), true);
-        if (array_key_exists('totalCount', $resultArray)) {
-            $this->totalCount = $resultArray['totalCount'];
+    public function search(array $params = []): array
+    {
+        try {
+            $response = $this->httpClient->request(
+                'POST',
+                $this->apiUrl . $this->accessToken,
+                ['json' => $params]
+            );
+        } catch (TransferException $e) {
+            throw new JoobleRequestException($e);
         }
-        
-        return $resultArray['jobs'] ? : [];
+        return $this->decodeBody($response->getBody()->getContents());
     }
-    
+
     /**
      * Set your jooble api access token
      * @param string $token
@@ -69,40 +74,13 @@ class Request
     {
         $this->accessToken = $token;
     }
-    
+
     /**
      * Get your jooble api access token $accessToken
      * @return string
      */
-    public function getAccessToken()
+    public function getAccessToken(): string
     {
         return $this->accessToken;
-    }
-    
-    /**
-     * Set jooble api url
-     * @param string $url
-     */
-    public function setApiUrl(string $url)
-    {
-        $this->apiUrl = $url;
-    }
-    
-    /**
-     * Return current jobble api url
-     * @return string $apiUrl
-     */
-    public function getApiUrl()
-    {
-        return $this->apiUrl;
-    }
-    
-    /**
-     * Get results total count
-     * @return integer
-     */
-    public function getTotalCount()
-    {
-        return $this->totalCount;
     }
 }
